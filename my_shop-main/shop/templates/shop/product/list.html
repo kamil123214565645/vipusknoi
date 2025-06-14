@@ -1,0 +1,101 @@
+{% extends "shop/base.html" %}
+{% comment %} Наследуем структуру от базового шаблона base.html {% endcomment %}
+{% comment %} Загружаем статические файлы {% endcomment %}
+{% load static %}
+
+{% comment %} Переопределяем блок заголовка страницы {% endcomment %}
+{% block title %}
+    {% if query %} {# Если есть поисковый запрос #}
+        Результаты поиска по: "{{ query }}"
+    {% elif category %} {# Если выбрана категория #}
+        {{ category.name }}
+    {% else %} {# Если ни то, ни другое (главная страница каталога) #}
+        Товары
+    {% endif %}
+{% endblock %}
+
+{% comment %} Переопределяем основной блок контента {% endcomment %}
+{% block content %}
+    <div id="sidebar">
+        <h3>Категории</h3>
+        <ul>
+            {% comment %} Ссылка на список всех товаров (без фильтра по категории и без поиска) {% endcomment %}
+            <li {% if not category and not query %}class="selected"{% endif %}>
+                <a href="{% url "shop:product_list" %}">Все</a>
+            </li>
+            {% comment %} Цикл по всем категориям (categories передается из view) {% endcomment %}
+            {% for c in categories %}
+                <li {% if category.slug == c.slug %}class="selected"{% endif %}> {# Выделяем текущую категорию #}
+                    {% comment %} Ссылка на список товаров по текущей категории (используем get_absolute_url модели Category) {% endcomment %}
+                    <a href="{{ c.get_absolute_url }}">{{ c.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div id="main" class="product-list">
+        <h1>
+            {% if query %}
+                Результаты поиска по: "{{ query }}" {# Отображаем поисковый запрос #}
+            {% elif category %}
+                {{ category.name }} {# Отображаем название текущей категории #}
+            {% else %}
+                Все товары
+            {% endif %}
+        </h1>
+
+        {% comment %} Проверяем, есть ли товары для отображения (products - это объект Page от пагинатора) {% endcomment %}
+        {% if not products %}
+            <p>
+                {% if query %}По вашему запросу ничего не найдено.
+                {% elif category %}В данной категории пока нет товаров.
+                {% else %}Товаров пока нет.{% endif %}
+            </p>
+        {% endif %}
+
+        <div class="product-grid">
+            {% comment %} Цикл по товарам на текущей странице пагинации {% endcomment %}
+            {% for product in products %}
+                <div class="item">
+                    {% comment %} Ссылка на детальную страницу товара (используем get_absolute_url модели Product) {% endcomment %}
+                    <a href="{{ product.get_absolute_url }}">
+                        {% if product.image %} {# Если у товара есть изображение #}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        {% else %} {# Если изображения нет, показываем заглушку #}
+                            <img src="{% static "img/no_image.png" %}" alt="Изображение отсутствует">
+                        {% endif %}
+                    </a>
+                    <a href="{{ product.get_absolute_url }}">{{ product.name }}</a><br>
+                    ${{ product.price|floatformat:2 }} {# Цена товара, отформатированная до 2 знаков после запятой #}
+                    
+                    {% comment %} Форма для добавления товара в корзину (отправляет POST-запрос на cart_add) {% endcomment %}
+                    <form action="{% url "shop:cart_add" product.id %}" method="post" style="display: inline;">
+                        {% csrf_token %} {# Защита от CSRF-атак, обязательна для POST-форм #}
+                        <input type="submit" value="В корзину" class="button-small">
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% comment %} Блок пагинации: отображается, если есть другие страницы {% endcomment %}
+        {% if products.has_other_pages %}
+            <div class="pagination">
+                <span class="step-links">
+                    {% if products.has_previous %} {# Если есть предыдущая страница #}
+                        {# Ссылка на первую страницу. Сохраняем GET-параметры query и category_slug, если они есть #}
+                        <a href="?page=1{% if query %}&amp;query={{ query|urlencode }}{% endif %}{% if category %}{% comment %} Если в URL категории, нужно использовать URL категории с page {% endcomment %}{% endif %}">&laquo; первая</a>
+                        <a href="?page={{ products.previous_page_number }}{% if query %}&amp;query={{ query|urlencode }}{% endif %}{% if category %}{% endif %}">предыдущая</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Страница {{ products.number }} из {{ products.paginator.num_pages }}.
+                    </span>
+
+                    {% if products.has_next %} {# Если есть следующая страница #}
+                        <a href="?page={{ products.next_page_number }}{% if query %}&amp;query={{ query|urlencode }}{% endif %}{% if category %}{% endif %}">следующая</a>
+                        <a href="?page={{ products.paginator.num_pages }}{% if query %}&amp;query={{ query|urlencode }}{% endif %}{% if category %}{% endif %}">последняя &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% comment %} Загружаем теги для работы со статическими файлами (CSS, JS, изображения дизайна) {% endcomment %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>
+        {% comment %} Блок для заголовка страницы. Будет переопределен в дочерних шаблонах. {% endcomment %}
+        {% block title %}Мой магазин{% endblock %}
+    </title>
+    {% comment %} Подключаем основной CSS-файл {% endcomment %}
+    <link href="{% static "css/base.css" %}" rel="stylesheet">
+    {% comment %} Дополнительный блок для подключения других CSS или JS в <head> (если нужно) {% endcomment %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div id="header">
+        {% comment %} Ссылка на главную страницу каталога товаров {% endcomment %}
+        <a href="{% url "shop:product_list" %}" class="logo">Мой магазин</a>
+        <div class="search-bar">
+            {% comment %} Форма поиска. search_form передается из контекстного процессора. {% endcomment %}
+            <form action="{% url "shop:product_list" %}" method="get">
+                {% comment %} Поле для ввода поискового запроса. Имя 'query' соответствует тому, что ожидает view. {% endcomment %}
+                {{ search_form.query }}
+                <input type="submit" value="Поиск">
+            </form>
+        </div>
+    </div>
+    <div id="subheader">
+        <div class="cart">
+            {% comment %} 
+                Используем тег 'with' для создания временной переменной total_items,
+                чтобы не вызывать cart|length несколько раз. 
+                cart|length вызывает метод __len__ нашего объекта Cart.
+                cart передается из контекстного процессора.
+            {% endcomment %}
+            {% with total_items=cart|length %}
+                {% if total_items > 0 %} {# Если в корзине есть товары #}
+                    В вашей корзине:
+                    <a href="{% url "shop:cart_detail" %}"> {# Ссылка на страницу корзины #}
+                        {{ total_items }} товар{{ total_items|pluralize:" ,а,ов" }}, {# Правильное склонение слова "товар" #}
+                        ${{ cart.get_total_price|floatformat:2 }} {# Общая стоимость с учетом скидки #}
+                        {% if cart.coupon %} {# Если применен купон #}
+                            (со скидкой {{ cart.coupon.discount }}%)
+                        {% endif %}
+                    </a>
+                {% else %} {# Если корзина пуста #}
+                    Корзина пуста.
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+    <div id="content">
+        {% comment %} Основной блок контента страницы. Будет переопределен в дочерних шаблонах. {% endcomment %}
+        {% block content %}
+        {% endblock %}
+    </div>
+    <div id="footer">
+        <p>
+            <a href="{% url "shop:about_us" %}">О нас</a> |
+            <a href="{% url "shop:contact_info" %}">Контакты</a> |
+            &copy; Мой магазин {% now "Y" %} {# Отображает текущий год #}
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "shop/base.html" %}
+
+{% block title %}
+  Спасибо за ваш заказ!
+{% endblock %}
+
+{% block content %}
+  <h1>Спасибо!</h1>
+  {% comment %} order передается из view order_created, если заказ был успешно найден по ID из сессии {% endcomment %}
+  {% if order %}
+    <p>Ваш заказ №<strong>{{ order.id }}</strong> успешно оформлен.</p>
+    <p>Сумма к оплате: <strong>${{ order.get_total_cost|floatformat:2 }}</strong>
+       {% if order.coupon %} {# Если к заказу был применен купон #}
+           (с учетом скидки {{ order.discount }}% по купону {{ order.coupon.code }})
+       {% endif %}.
+    </p>
+    <p>Мы отправили подтверждение на ваш email: {{ order.email }}.</p>
+    <p>Мы свяжемся с вами в ближайшее время для подтверждения деталей.</p>
+  {% else %} {# Если по какой-то причине объект order не был передан #}
+    <p>Ваш заказ успешно оформлен. Мы свяжемся с вами в ближайшее время для подтверждения деталей.</p>
+  {% endif %}
+  <p><a href="{% url 'shop:product_list' %}" class="button light">Вернуться в магазин</a></p>
+{% endblock %}

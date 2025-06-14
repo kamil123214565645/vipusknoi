@@ -1,0 +1,110 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}
+  Ваша корзина
+{% endblock %}
+
+{% block content %}
+  <h1>Ваша корзина</h1>
+  <table class="cart">
+    <thead>
+      <tr>
+        <th>Изображение</th>
+        <th>Товар</th>
+        <th>Количество</th>
+        <th>Удалить</th>
+        <th>Цена за единицу</th>
+        <th>Общая цена</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% comment %} Итерируемся по товарам в корзине (cart - объект Cart, __iter__ возвращает детали товаров) {% endcomment %}
+      {% for item in cart %}
+        {% comment %} Используем 'with' для удобного доступа к объекту product внутри item {% endcomment %}
+        {% with product=item.product %}
+          <tr>
+            <td>
+              <a href="{{ product.get_absolute_url }}">
+                {% if product.image %}
+                  <img src="{{ product.image.url }}" style="max-width: 100px;" alt="{{product.name}}">
+                {% else %}
+                  <img src="{% static "img/no_image.png" %}" style="max-width: 100px;" alt="Нет изображения">
+                {% endif %}
+              </a>
+            </td>
+            <td>{{ product.name }}</td>
+            <td>
+              {{ item.quantity }}
+              {% comment %} 
+                Здесь могла бы быть форма для обновления количества, 
+                но в упрощенной версии мы ее не делали.
+              {% endcomment %}
+            </td>
+            <td>
+              <form action="{% url "shop:cart_remove" product.id %}" method="post">
+                {% csrf_token %}
+                <input type="submit" value="Удалить" class="button-small">
+              </form>
+            </td>
+            <td class="num">${{ item.price|floatformat:2 }}</td> {# Цена за единицу товара из корзины #}
+            <td class="num">${{ item.total_price|floatformat:2 }}</td> {# Общая цена для данной позиции (цена * кол-во) #}
+          </tr>
+        {% endwith %}
+      {% empty %} {# Если корзина пуста (цикл for не выполнился) #}
+        <tr>
+            <td colspan="6">Ваша корзина пуста.</td>
+        </tr>
+      {% endfor %}
+      
+      {% if cart|length > 0 %} {# Отображаем итоги, только если корзина не пуста #}
+        <tr class="subtotal">
+            <td colspan="5">Промежуточный итог (до скидки):</td>
+            <td class="num">${{ cart.get_subtotal_price|floatformat:2 }}</td> {# Общая сумма без скидки #}
+        </tr>
+        {% if cart.coupon %} {# Если применен купон #}
+            <tr class="discount">
+                <td colspan="5">
+                    Купон "{{ cart.coupon.code }}" ({{ cart.coupon.discount }}% скидка):
+                </td>
+                <td class="num neg">-${{ cart.get_discount_amount|floatformat:2 }}</td> {# Сумма скидки #}
+            </tr>
+        {% endif %}
+        <tr class="total">
+            <td colspan="5"><strong>Итого к оплате:</strong></td>
+            <td class="num"><strong>${{ cart.get_total_price|floatformat:2 }}</strong></td> {# Финальная сумма с учетом скидки #}
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% comment %} Отображаем сообщения Django (например, об успехе/ошибке применения купона) {% endcomment %}
+  {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if cart|length > 0 %} {# Форма купона отображается, только если корзина не пуста #}
+    <div class="coupon-form">
+        <p>Есть купон на скидку?</p>
+        <form action="{% url 'shop:coupon_apply' %}" method="post">
+            {% comment %} Отображаем поля формы coupon_apply_form (в нашем случае одно поле 'code') {% endcomment %}
+            {{ coupon_apply_form.as_p }}
+            <input type="submit" value="Применить купон" class="button-small">
+            {% csrf_token %}
+        </form>
+    </div>
+  {% endif %}
+
+  <p style="text-align:right; margin-top: 20px;">
+    <a href="{% url "shop:product_list" %}" class="button light">Продолжить покупки</a>
+    {% if cart|length > 0 %} {# Кнопка оформления заказа, только если есть товары #}
+    <a href="{% url "shop:order_create" %}" class="button">
+      Оформить заказ
+    </a>
+    {% endif %}
+  </p>
+{% endblock %}

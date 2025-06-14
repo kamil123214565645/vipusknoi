@@ -1,0 +1,58 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}
+    {{ product.name }} {# Название товара в заголовке страницы #}
+{% endblock %}
+
+{% block content %}
+    <div class="product-detail">
+        <div class="product-main-info">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image-large">
+            {% else %}
+                <img src="{% static "img/no_image.png" %}" alt="Изображение отсутствует" class="product-image-large">
+            {% endif %}
+            <div class="product-text-info">
+                <h1>{{ product.name }}</h1>
+                <h2>
+                    Категория: <a href="{{ product.category.get_absolute_url }}">{{ product.category }}</a> {# Ссылка на категорию товара #}
+                </h2>
+                <p class="price">${{ product.price|floatformat:2 }}</p>
+                
+                <form action="{% url "shop:cart_add" product.id %}" method="post">
+                    {% csrf_token %}
+                    <input type="submit" value="Добавить в корзину" class="button">
+                </form>
+                
+                <div class="description">
+                    <h3>Описание товара:</h3>
+                    {{ product.description|linebreaks }} {# Фильтр linebreaks преобразует переносы строк в <p> и <br> #}
+                </div>
+            </div>
+        </div>
+
+        {% comment %} Блок с похожими товарами (related_products передается из view) {% endcomment %}
+        {% if related_products %}
+            <div class="related-products">
+                <h2>Похожие товары</h2>
+                <div class="product-grid">
+                    {% for related_product in related_products %}
+                        <div class="item">
+                            <a href="{{ related_product.get_absolute_url }}">
+                                {% if related_product.image %}
+                                    <img src="{{ related_product.image.url }}" alt="{{ related_product.name }}">
+                                {% else %}
+                                    <img src="{% static "img/no_image.png" %}" alt="Изображение отсутствует">
+                                {% endif %}
+                            </a>
+                            <a href="{{ related_product.get_absolute_url }}">{{ related_product.name }}</a><br>
+                            ${{ related_product.price|floatformat:2 }}
+                            {% comment %} Можно добавить кнопку "В корзину" и для похожих товаров, если нужно {% endcomment %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

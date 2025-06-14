@@ -1,0 +1,57 @@
+{% extends "shop/base.html" %}
+{% load static %}
+
+{% block title %}
+  Оформление заказа
+{% endblock %}
+
+{% block content %}
+  <h1>Оформление заказа</h1>
+  <div class="order-summary">
+    <h3>Ваш заказ</h3>
+    <ul>
+      {% for item in cart %} {# Итерация по товарам в корзине #}
+        <li>
+          {{ item.quantity }}x {{ item.product.name }}
+          <span>${{ item.total_price|floatformat:2 }}</span> {# Общая цена для этой позиции #}
+        </li>
+      {% endfor %}
+    </ul>
+    <p>Промежуточный итог: ${{ cart.get_subtotal_price|floatformat:2 }}</p> {# Сумма до скидки #}
+    {% if cart.coupon %} {# Если есть активный купон в корзине #}
+      <p>Купон "{{ cart.coupon.code }}" ({{ cart.coupon.discount }}% скидка): -${{ cart.get_discount_amount|floatformat:2 }}</p>
+    {% endif %}
+    <p><strong>Итого к оплате: ${{ cart.get_total_price|floatformat:2 }}</strong></p> {# Финальная сумма #}
+  </div>
+
+  {% comment %} Отображаем сообщения Django (например, об ошибках валидации формы) {% endcomment %}
+  {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+  {% endif %}
+  {% if form.errors %} {# Если есть ошибки в форме, выводим их #}
+    <div class="form-errors">
+        <p>Пожалуйста, исправьте ошибки ниже:</p>
+        {{ form.non_field_errors }} {# Общие ошибки формы #}
+        {% for field in form %}
+            {% if field.errors %}
+                <p><strong>{{ field.label }}:</strong> {{ field.errors|join:", " }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="order-form">
+    {% comment %} 
+        Отображаем поля формы OrderCreateForm. 
+        form.as_p рендерит каждое поле в теге <p>.
+        Можно также итерироваться по полям формы вручную для большей кастомизации.
+    {% endcomment %}
+    {{ form.as_p }} 
+    <p><input type="submit" value="Оформить заказ" class="button"></p>
+    {% csrf_token %}
+  </form>
+{% endblock %}
